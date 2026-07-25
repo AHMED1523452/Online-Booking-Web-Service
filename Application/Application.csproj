@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- AutoMapper 14.0.0 advisory (no fix available yet) -->
+    <NoWarn>NU1903;CS8618;CS8601;CS8625;CS8600;CS8602;CS8603;CS8604</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- CQRS / Mediator -->
+    <PackageReference Include="AutoMapper" Version="14.0.0" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <!-- Validation Pipeline -->
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+    <!-- Only for DbSet<T> abstraction in IApplicationDbContext -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+    <!-- HybridCache for in-memory + distributed caching in handlers -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.8.0" />
+    <PackageReference Include="Stripe.net" Version="52.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Domain.csproj" />
+  </ItemGroup>
+  <!-- Exclude old helpers â€” superseded by Clean Architecture structure -->
+  <ItemGroup>
+    <Compile Remove="Features\HotelImages\**" />
+    <Compile Remove="Features\Images\HotelImages\Queries\**" />
+    <Compile Remove="Features\Images\RoomImages\Queries\**" />
+    <Compile Remove="Helpers\**" />
+    <EmbeddedResource Remove="Features\HotelImages\**" />
+    <EmbeddedResource Remove="Features\Images\HotelImages\Queries\**" />
+    <EmbeddedResource Remove="Features\Images\RoomImages\Queries\**" />
+    <None Remove="Features\HotelImages\**" />
+    <None Remove="Features\Images\HotelImages\Queries\**" />
+    <None Remove="Features\Images\RoomImages\Queries\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Features\Payments\Commands\HandleStripeWebhook\" />
+  </ItemGroup>
+</Project>
