@@ -1,11 +1,17 @@
 using Application.Common.Interfaces;
 using Application.Common.Models;
+using Application.Common.Patterns;
 using Application.Features.Auth.DTOs;
 using Domain.Entities;
 using FluentValidation;
+using Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
+using Stripe;
+using System.Net.Mail;
+using System.Security.Cryptography;
 
 namespace Application.Features.Auth.Commands.Register;
 
@@ -15,9 +21,10 @@ public sealed record RegisterCommand(
     string Password,
     string? Phone = null,
     int RoleId = 1
-) : IRequest<ApiResponse<AuthResponse>>;
+) : IRequest<GenericResult<ForgotPasswordResponseDTO>>;
 
-public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand>
+public sealed class RegisterCommandValidator 
+                        : AbstractValidator<RegisterCommand>
 {
     public RegisterCommandValidator()
     {
@@ -43,53 +50,38 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
     }
 }
 
-public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, ApiResponse<AuthResponse>>
+public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, GenericResult<ForgotPasswordResponseDTO>>
 {
     private readonly IApplicationDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
-    private readonly HybridCache _cache;
-
-    // Match the same short TTL used in Login
-    private static readonly HybridCacheEntryOptions AuthCacheOptions = new()
-    {
-        Expiration = TimeSpan.FromMinutes(5),
-        LocalCacheExpiration = TimeSpan.FromMinutes(2)
-    };
+    private readonly IEmailService emailService;
+    private readonly ILogger<RegisterCommandHandler> logger;
 
     public RegisterCommandHandler(
         IApplicationDbContext context,
         IPasswordHasher passwordHasher,
         IJwtTokenGenerator jwtTokenGenerator,
-        HybridCache cache)
+        IEmailService emailService,
+        ILogger<RegisterCommandHandler> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
-        _cache = cache;
+        this.emailService = emailService;
+        this.logger = logger;
     }
 
-    public async Task<ApiResponse<AuthResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<GenericResult<ForgotPasswordResponseDTO>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        var emailExists = await _context.passengers
-            .AnyAsync(p => p.email == request.Email, cancellationToken);
+        if (await _context.passengers
+            .AnyAsync(p => p.email == request.Email, cancellationToken)) return await Result.FailureAsync<ForgotPasswordResponseDTO>($"A user with email '{request.Email}' already exists.");
 
-        if (emailExists)
-        {
-            return ApiResponse<AuthResponse>.Fail($"A user with email '{request.Email}' already exists.", 409);
-        }
 
-        // Verify role exists
-        var roleExists = await _context.roles
-            .AnyAsync(r => r.id == request.RoleId, cancellationToken);
+        if (!await _context.roles
+            .AnyAsync(r => r.id == request.RoleId, cancellationToken)) return await Result.FailureAsync<ForgotPasswordResponseDTO>($"Role with ID {request.RoleId} does not exist.");
 
-        if (!roleExists)
-        {
-            return ApiResponse<AuthResponse>.Fail($"Role with ID {request.RoleId} does not exist.", 400);
-        }
-
-        var hashedPassword = _passwordHasher.HashPassword(request.Password);
-
+        var hashedPassword = await _passwordHasher.HashPassword(request.Password, cancellationToken);
         var user = new passenger
         {
             name = request.Name,
@@ -97,46 +89,39 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Ap
             password_hash = hashedPassword,
             phone = request.Phone,
             role_id = request.RoleId,
-            is_email_verified = false,
             status = "unverified",
             created_at = DateTime.UtcNow
         };
+        try
+        {
+            string emailConfirmationToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
-        await _context.passengers.AddAsync(user, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+            user.EmailConfirmationTokenHash = await _passwordHasher
+                                           .HashPassword(emailConfirmationToken, cancellationToken);
+            user.EmailConfirmationTokenExpiry = DateTime.Now.AddMinutes(5);
 
-        // Fetch user with role included so that the token generator has the role name
-        var savedUser = await _context.passengers
-            .Include(p => p.role)
-            .FirstAsync(p => p.id == user.id, cancellationToken);
+            await _context.passengers.AddAsync(user, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
 
-        var token = _jwtTokenGenerator.GenerateToken(savedUser);
-        var refreshToken = Guid.NewGuid().ToString("N");
+            string htmlBody = await MailBody.ConfirmEamilMailBody(user, emailConfirmationToken, cancellationToken);
+            if (htmlBody is null) throw new Exception("Something invalid occurred. ");
 
-        savedUser.refreshToken = refreshToken;
-        savedUser.refresh_token_expiry = DateTime.UtcNow.AddDays(7);
-        await _context.SaveChangesAsync(cancellationToken);
+            await emailService.SendEmail(user.email, "Confirm Your Email Address", htmlBody);
 
-        // Warm the cache for the new user so the next Login is served from cache.
-        // Evict first (defensive) in case a stale entry somehow existed.
-        var cacheKey = $"passenger-email:{savedUser.email}";
-        await _cache.RemoveAsync(cacheKey, cancellationToken);
-        await _cache.SetAsync(
-            cacheKey,
-            new CachedPassengerProfile(
-                savedUser.id,
-                savedUser.email,
-                savedUser.name,
-                savedUser.password_hash ?? string.Empty,
-                savedUser.role?.name
-            ),
-            AuthCacheOptions,
-            cancellationToken: cancellationToken
-        );
 
-        return ApiResponse<AuthResponse>.Ok(
-            new AuthResponse(token, refreshToken, savedUser.email, savedUser.name, savedUser.role?.name ?? "Passenger"),
-            "Registration successful."
-        );
+            return await Result.SuccessAsync<ForgotPasswordResponseDTO>(new ForgotPasswordResponseDTO
+            {
+                Message = "Registration completed successfully. Please check your email to confirm your account."
+            });
+
+        }catch(SmtpException ex)
+        {
+            logger.LogError("Something invalid occurred, the exception occurred in the part of the SMTP exception. ");
+            throw new SmtpException(ex.Message);
+        }
+        catch(Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 }

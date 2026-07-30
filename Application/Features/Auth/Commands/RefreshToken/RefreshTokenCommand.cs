@@ -13,7 +13,7 @@ namespace Application.Features.Auth.Commands.RefreshToken;
 
 public sealed record RefreshTokenCommand(
     string RefreshToken
-) : IRequest<ApiResponse<AuthResponse>>;
+) : IRequest<ApiResponse<RefreshTokenResponseDTO>>;
 
 public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenCommand>
 {
@@ -24,7 +24,7 @@ public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshToke
     }
 }
 
-public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, ApiResponse<AuthResponse>>
+public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, ApiResponse<RefreshTokenResponseDTO>>
 {
     private readonly IApplicationDbContext _context;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
@@ -40,7 +40,7 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
         _cache = cache;
     }
 
-    public async Task<ApiResponse<AuthResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<RefreshTokenResponseDTO>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
         // NOTE: refreshToken is a random GUID — not suitable as a cache key.
         // We look it up from the DB, rotate it, and then evict the email-keyed profile.
@@ -48,38 +48,43 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
         // 1. Find passenger with matching refresh token
         var user = await _context.passengers
             .Include(p => p.role)
-            .FirstOrDefaultAsync(p => p.refreshToken == request.RefreshToken, cancellationToken);
+            .FirstOrDefaultAsync(p => p.refreshToken == request.RefreshToken && 
+                                      p.is_revoked == false && 
+                                      p.IsDeleted == false && 
+                                      p.is_email_verified == true &&
+                                      p.status == "verified", cancellationToken);
 
         if (user is null)
         {
-            return ApiResponse<AuthResponse>.Fail("Invalid refresh token.", statusCode: 400);
+            return ApiResponse<RefreshTokenResponseDTO>.Fail("Invalid refresh token.", statusCode: 400);
         }
 
         // 2. Check if token is expired
-        if (DateTime.TryParse(user.refreshToken, out var expiry) && expiry < DateTime.UtcNow)
+        if (user.refresh_token_expiry < DateTime.Now )
         {
             // Clear expired token details
             user.refreshToken = null;
             user.refresh_token_expiry = default ;
             await _context.SaveChangesAsync(cancellationToken);
 
-            return ApiResponse<AuthResponse>.Fail("Refresh token has expired. Please login again.", statusCode: 400);
+            return ApiResponse<RefreshTokenResponseDTO>.Fail("Refresh token has expired. Please login again.", statusCode: 400);
         }
 
         // 3. Generate new JWT token and rotate refresh token
-        var newAccessToken = _jwtTokenGenerator.GenerateToken(user);
-        var newRefreshToken = Guid.NewGuid().ToString("N");
+        var newRefreshToken = await _jwtTokenGenerator.GenerateRefreshTokenAsync(user, cancellationToken);
 
         user.refreshToken = newRefreshToken;
         user.refresh_token_expiry = DateTime.UtcNow.AddDays(7);
+
+        //. here you update the values for the refresh token and refresh token expiry not adding don't forget  
         await _context.SaveChangesAsync(cancellationToken);
 
         // 4. Evict the cached profile — the passenger record has changed (new refresh token).
         //    The next Login call will re-populate the cache from the DB.
         await _cache.RemoveAsync($"passenger-email:{user.email}", cancellationToken);
 
-        return ApiResponse<AuthResponse>.Ok(
-            new AuthResponse(newAccessToken, newRefreshToken, user.email, user.name, user.role?.name ?? "Passenger"),
+        return ApiResponse<RefreshTokenResponseDTO>.Ok(
+            new RefreshTokenResponseDTO(newRefreshToken,user.name, user.email, user.role?.name ?? "Passenger"),
             "Token refreshed successfully."
         );
     }

@@ -29,12 +29,12 @@ internal sealed class DeleteTourCommandHandler : IRequestHandler<DeleteTourComma
 {
     private readonly IUnitOfWork           _uow;
     private readonly ICurrentIUserService  _currentUserService;
-    private readonly ICacheService         _cache;
+    private readonly ITourCacheService         _cache;
 
     public DeleteTourCommandHandler(
         IUnitOfWork uow,
         ICurrentIUserService currentUserService,
-        ICacheService cache)
+        ITourCacheService cache)
     {
         _uow                = uow;
         _currentUserService = currentUserService;

@@ -2,13 +2,12 @@ using AutoMapper;
 using Domain.Entities;
 using Domain.Enums;
 using Application.Features.Favorites.DTOs;
-using Application.Features.Passengers.DTOs;
 using Application.Features.TourBookings.DTOs;
 using Application.Features.HotelAvailability.DTOs;
 using Application.Features.HotelBooking.DTOs;
-using Application.Features.Hotels.DTOs;
 using Application.Features.Tours.DTOs;
 using Application.Features.Tours.Commands.CreateTour;
+using Application.Features.FlightBookings.DTOs;
 
 namespace Application.Common.Mappings;
 
@@ -20,18 +19,6 @@ public sealed class MappingProfile : Profile
 {
     public MappingProfile()
     {
-        // ── Passenger ────────────────────────────────────────────────────────
-        CreateMap<passenger, PassengerResponse>()
-            .ForMember(d => d.Id,              opt => opt.MapFrom(s => s.id))
-            .ForMember(d => d.Name,            opt => opt.MapFrom(s => s.name))
-            .ForMember(d => d.Email,           opt => opt.MapFrom(s => s.email))
-            .ForMember(d => d.Phone,           opt => opt.MapFrom(s => s.phone))
-            .ForMember(d => d.Status,          opt => opt.MapFrom(s => s.status))
-            .ForMember(d => d.IsEmailVerified, opt => opt.MapFrom(s => s.is_email_verified))
-            .ForMember(d => d.RoleName,        opt => opt.MapFrom(s => s.role != null ? s.role.name : null))
-            .ForMember(d => d.CreatedAt,       opt => opt.MapFrom(s => s.created_at))
-            .ForMember(d => d.UpdatedAt,       opt => opt.MapFrom(s => s.updated_at));
-
         // ── TourBookingResponse (from booking aggregate with includes) ────────
         // Used by GetTourBookingByIdQuery and GetUserTourBookingsQuery.
         // The booking entity must be loaded with:

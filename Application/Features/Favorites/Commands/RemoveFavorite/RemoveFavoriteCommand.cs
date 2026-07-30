@@ -41,9 +41,9 @@ public sealed class RemoveFavoriteCommandHandler
     : IRequestHandler<RemoveFavoriteCommand, Unit>
 {
     private readonly IUnitOfWork   _uow;
-    private readonly ICacheService _cache;
+    private readonly ITourCacheService _cache;
 
-    public RemoveFavoriteCommandHandler(IUnitOfWork uow, ICacheService cache)
+    public RemoveFavoriteCommandHandler(IUnitOfWork uow, ITourCacheService cache)
     {
         _uow   = uow;
         _cache = cache;

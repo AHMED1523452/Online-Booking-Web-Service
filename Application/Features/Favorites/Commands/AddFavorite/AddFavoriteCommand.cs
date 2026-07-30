@@ -43,9 +43,9 @@ public sealed class AddFavoriteCommandHandler
     : IRequestHandler<AddFavoriteCommand, ApiResponse<FavoriteDto>>
 {
     private readonly IUnitOfWork   _uow;
-    private readonly ICacheService _cache;
+    private readonly ITourCacheService _cache;
 
-    public AddFavoriteCommandHandler(IUnitOfWork uow, ICacheService cache)
+    public AddFavoriteCommandHandler(IUnitOfWork uow, ITourCacheService cache)
     {
         _uow   = uow;
         _cache = cache;

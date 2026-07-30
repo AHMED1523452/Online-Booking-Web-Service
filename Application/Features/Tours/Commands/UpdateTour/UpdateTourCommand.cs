@@ -44,9 +44,9 @@ public sealed class UpdateTourCommandValidator : AbstractValidator<UpdateTourCom
 internal sealed class UpdateTourCommandHandler : IRequestHandler<UpdateTourCommand, ApiResponse<bool>>
 {
     private readonly IUnitOfWork   _uow;
-    private readonly ICacheService _cache;
+    private readonly ITourCacheService _cache;
 
-    public UpdateTourCommandHandler(IUnitOfWork uow, ICacheService cache)
+    public UpdateTourCommandHandler(IUnitOfWork uow, ITourCacheService cache)
     {
         _uow   = uow;
         _cache = cache;

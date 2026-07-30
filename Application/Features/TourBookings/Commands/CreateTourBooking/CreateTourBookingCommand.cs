@@ -50,9 +50,9 @@ public sealed class CreateTourBookingCommandHandler
     : IRequestHandler<CreateTourBookingCommand, ApiResponse<TourBookingResponse>>
 {
     private readonly IUnitOfWork   _uow;
-    private readonly ICacheService _cache;
+    private readonly ITourCacheService _cache;
 
-    public CreateTourBookingCommandHandler(IUnitOfWork uow, ICacheService cache)
+    public CreateTourBookingCommandHandler(IUnitOfWork uow, ITourCacheService cache)
     {
         _uow   = uow;
         _cache = cache;

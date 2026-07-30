@@ -27,10 +27,10 @@ public static class DependencyInjection
         // 1. Validation: rejects invalid requests before they reach the cache or handler
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-        // 2. Caching: serves responses from ICacheService for ICacheableQuery requests
+        // 2. Caching: serves responses from ITourCacheService for ICacheableQuery requests
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
 
-        // Note: IMemoryCache + ICacheService are registered by Infrastructure via
+        // Note: IMemoryCache + ITourCacheService are registered by Infrastructure via
         // builder.Services.AddApplicationCaching(builder.Configuration) in Program.cs.
 
         // AutoMapper — auto-discovers all Profile implementations

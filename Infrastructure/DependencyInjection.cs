@@ -10,11 +10,13 @@ using Infrastructure.Persistence;
 using Infrastructure.RateLimiting;
 using Infrastructure.Security;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
+using System.Security.Claims;
 using System.Text;
 
 namespace Infrastructure;
@@ -27,12 +29,12 @@ public static class DependencyInjection
     {
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection")));
+                configuration.GetConnectionString("DefaultdConnection")));
 
         services.AddScoped<IApplicationDbContext>(sp =>
             sp.GetRequiredService<AppDbContext>());
 
-        // ── Caching (IMemoryCache + ICacheService + CacheSettings validation) ──
+        // ── Caching (IMemoryCache + ITourCacheService + CacheSettings validation) ──
         services.AddApplicationCaching(configuration);
 
         // ── Rate Limiting (fixed-window policies + RateLimiterSettings validation) ──
@@ -44,6 +46,9 @@ public static class DependencyInjection
         services.AddTransient<IGenerateSlug, GenerateSlug>();
         services.AddTransient(typeof(ICachService<>), typeof(CachService<>));
         services.AddTransient<IBookingService, BookingService>();
+        services.AddTransient<IEmailService, EmailService>();
+
+
         services.AddSingleton<IFlightCacheService, FlightMemoryCacheService>();
 
         //. AWS registeration 
@@ -59,6 +64,19 @@ public static class DependencyInjection
         services.AddScoped<IHotelBookingRepository, HotelBookingRepository>();
 
         services.AddSingleton<ICacheInvalidationService, CacheInvalidationService>();
+
+        //. ------- Fluent Email Registeration ---------------------
+        //. Adding the fluent Email settings 
+        services.AddFluentEmail(configuration["SMTP:From"],
+            "Online Travel Web Service").AddRazorRenderer()
+        .AddSmtpSender(new System.Net.Mail.SmtpClient
+        {
+            EnableSsl = true,
+            Host = configuration["SMTP:Host"],
+            Port = Convert.ToInt32(configuration["SMTP:Port"]),
+            Credentials = new NetworkCredential(configuration["SMTP:From"],configuration["SMTP:Password"])
+        });
+
 
         services.AddMemoryCache();
         // ── Security & JWT ───────────────────────────────────

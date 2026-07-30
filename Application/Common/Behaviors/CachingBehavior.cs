@@ -10,7 +10,7 @@ namespace Application.Common.Behaviors;
 
 /// <summary>
 /// MediatR pipeline behavior that transparently caches the responses of any
-/// <see cref="ICacheableQuery"/> request via <see cref="ICacheService"/>.
+/// <see cref="ICacheableQuery"/> request via <see cref="ITourCacheService"/>.
 ///
 /// Pipeline order: Validation → Caching → Handler.
 ///
@@ -27,12 +27,12 @@ public sealed class CachingBehavior<TRequest, TResponse>
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
-    private readonly ICacheService _cache;
+    private readonly ITourCacheService _cache;
     private readonly CacheSettings _settings;
     private readonly ILogger<CachingBehavior<TRequest, TResponse>> _logger;
 
     public CachingBehavior(
-        ICacheService cache,
+        ITourCacheService cache,
         IOptions<CacheSettings> settings,
         ILogger<CachingBehavior<TRequest, TResponse>> logger)
     {

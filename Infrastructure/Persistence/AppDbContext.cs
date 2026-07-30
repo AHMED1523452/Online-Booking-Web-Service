@@ -63,8 +63,6 @@ public partial class AppDbContext : DbContext, IApplicationDbContext
                     v => v != null ? (int)Enum.Parse<Domain.Enums.BookingStatus>(v, true) : 0,
                     v => Enum.GetName(typeof(Domain.Enums.BookingStatus), v) ?? "Pending")
                 .HasColumnType("int");
-            entity.HasOne(d => d.coupon).WithMany(p => p.bookings)
-                .HasConstraintName("FK_bookings_coupon");
             entity.HasOne(d => d.passenger).WithMany(p => p.bookings)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_bookings_user");

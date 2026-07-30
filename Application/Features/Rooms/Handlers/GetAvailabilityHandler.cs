@@ -1,6 +1,5 @@
 ﻿using Application.Common.Interfaces;
 using Application.Common.Patterns;
-using Application.Features.Passengers.Queries.GetAllPassengers;
 using Application.Features.Rooms.DTOs;
 using Application.Features.Rooms.Queries;
 using Domain.Entities;

@@ -7,12 +7,17 @@ using Application;
 using Application.Common.Interfaces;
 using Infrastructure;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OnlineTravelBooking.Middleware;
 using OnlineTravelBooking.Swagger;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.Caching.Hybrid;
 using Sentry.AspNetCore;
+using System.Net;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,7 +58,7 @@ builder.Services.AddHybridCache(options =>
 });
 //______________Sentry____________________________________
 // UseSentry() with no arguments reads ALL settings from the (Sentry) section
-builder.WebHost.UseSentry();
+//builder.WebHost.UseSentry();
 builder.Services.Configure<SentryAspNetCoreOptions>(options =>
 {
     options.Environment = builder.Environment.EnvironmentName;
@@ -65,14 +70,38 @@ builder.Services.Configure<SentryAspNetCoreOptions>(options =>
 
 });
 
+
+//. Default Scheme 
+//.Default Scheme 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        ValidateAudience = true,
+        ValidateIssuer = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKEY"])),
+        ClockSkew = TimeSpan.Zero,
+        RoleClaimType = ClaimTypes.Role
+    };
+});
+
+
 // ── 6. Swagger / OpenAPI ──────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title       = "Online Travel Booking API",
-        Version     = "v1",
+        Title = "Online Travel Booking API",
+        Version = "v1",
         Description = "Clean Architecture — Domain · Application · Infrastructure · API"
     });
 
@@ -122,7 +151,7 @@ app.UseMiddleware<MeasuringExecutingTimeMiddleware>();
 // ── Sentry performance tracing ────────────────────────────────────────────────
 // Creates one Sentry "transaction" per HTTP request so you can see
 // slow endpoints in the Performance tab of your Sentry dashboard.
-app.UseSentryTracing();
+//. app.UseSentryTracing();
 
 
     app.UseSwagger();

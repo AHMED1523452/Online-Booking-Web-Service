@@ -28,9 +28,9 @@ public static class CacheRegistration
         services.AddSingleton<IValidateOptions<CacheSettings>,
             FluentValidationOptionsAdapter<CacheSettings>>();
 
-        // 3. Register ICacheService — singleton because IMemoryCache is singleton
+        // 3. Register ITourCacheService — singleton because IMemoryCache is singleton
         //    and our key-tracker dictionary must survive the lifetime of the app.
-        services.AddSingleton<ICacheService, MemoryCacheService>();
+        services.AddSingleton<ITourCacheService, MemoryCacheService>();
 
         return services;
     }

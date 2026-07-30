@@ -4,5 +4,6 @@ namespace Application.Common.Interfaces;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateToken(passenger user);
+    Task<string> GenerateAccessTokenAsync(passenger user, CancellationToken cancellationToken);
+    Task<string> GenerateRefreshTokenAsync(passenger user, CancellationToken cancellationToken);
 }

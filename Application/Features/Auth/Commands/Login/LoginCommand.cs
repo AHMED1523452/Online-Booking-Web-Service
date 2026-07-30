@@ -1,3 +1,4 @@
+
 using Application.Common.Interfaces;
 using Application.Common.Models;
 using Application.Features.Auth.DTOs;
@@ -5,6 +6,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using System.Security.Cryptography;
 
 namespace Application.Features.Auth.Commands.Login;
 
@@ -85,7 +87,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, ApiRespo
         if (string.IsNullOrEmpty(profile.PasswordHash))
             return ApiResponse<AuthResponse>.Fail("Authentication method not supported for this account (no password set).", 400);
 
-        if (!_passwordHasher.VerifyPassword(request.Password, profile.PasswordHash))
+        if (! await _passwordHasher.VerifyPassword(request.Password, profile.PasswordHash, cancellationToken))
             return ApiResponse<AuthResponse>.Fail("Invalid credentials.", 401);
 
         // Build a lightweight passenger object so the token generator can consume it
@@ -100,14 +102,20 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, ApiRespo
                                 : null
         };
 
-        var token = _jwtTokenGenerator.GenerateToken(tokenUser);
+        var token =  await _jwtTokenGenerator.GenerateAccessTokenAsync(tokenUser, cancellationToken);
 
         // Persist the new refresh token so the client can use it to rotate access tokens.
-        var refreshToken = Guid.NewGuid().ToString("N");
+        var refreshToken = await _jwtTokenGenerator.GenerateRefreshTokenAsync(tokenUser, cancellationToken);
         var dbUser = await _context.passengers
-            .FirstAsync(p => p.email == request.Email, cancellationToken);
+            .FirstAsync(p => p.email == request.Email &&   
+                             p.is_revoked == false  && 
+                             p.IsDeleted == false && 
+                             p.is_email_verified == true &&
+                             p.status == "verified", cancellationToken);
+        //if()
         dbUser.refreshToken          = refreshToken;
         dbUser.refresh_token_expiry  = DateTime.UtcNow.AddDays(7);
+
         await _context.SaveChangesAsync(cancellationToken);
 
         // Evict the now-stale cached profile so the next login re-reads from DB.

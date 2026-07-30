@@ -4,12 +4,12 @@ namespace Infrastructure.Security;
 
 public sealed class PasswordHasher : IPasswordHasher
 {
-    public string HashPassword(string password)
+    public async Task< string> HashPassword(string password, CancellationToken cancellationToken)
     {
         return BCrypt.Net.BCrypt.HashPassword(password);
     }
     //
-    public bool VerifyPassword(string password, string hashedPassword)
+    public async Task< bool> VerifyPassword(string password, string hashedPassword, CancellationToken cancellationToken)
     {
         return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
     }

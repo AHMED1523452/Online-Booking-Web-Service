@@ -43,9 +43,9 @@ internal sealed class CreateTourCommandHandler : IRequestHandler<CreateTourComma
 {
     private readonly IUnitOfWork    _uow;
     private readonly IMapper        _mapper;
-    private readonly ICacheService  _cache;
+    private readonly ITourCacheService  _cache;
 
-    public CreateTourCommandHandler(IUnitOfWork uow, IMapper mapper, ICacheService cache)
+    public CreateTourCommandHandler(IUnitOfWork uow, IMapper mapper, ITourCacheService cache)
     {
         _uow    = uow;
         _mapper = mapper;

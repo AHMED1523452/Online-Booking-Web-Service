@@ -8,7 +8,7 @@ using System.Collections.Concurrent;
 namespace Infrastructure.Caching;
 
 /// <summary>
-/// <see cref="IMemoryCache"/>-backed implementation of <see cref="ICacheService"/>.
+/// <see cref="IMemoryCache"/>-backed implementation of <see cref="ITourCacheService"/>.
 ///
 /// Key design decisions:
 /// • A <see cref="ConcurrentDictionary{TKey,TValue}"/> of all tracked keys enables
@@ -19,7 +19,7 @@ namespace Infrastructure.Caching;
 /// • All public methods are Task-based so the interface is ready for IDistributedCache
 ///   migration without consumer code changes.
 /// </summary>
-public sealed class MemoryCacheService : ICacheService
+public sealed class MemoryCacheService : ITourCacheService
 {
     private readonly IMemoryCache _cache;
     private readonly CacheSettings _settings;

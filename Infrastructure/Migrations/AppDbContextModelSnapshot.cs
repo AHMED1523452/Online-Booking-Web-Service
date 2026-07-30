@@ -91,13 +91,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("varchar(15)")
                         .HasDefaultValue("unpaid");
 
-                    b.Property<string>("status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("status")
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("int");
 
                     b.Property<decimal>("subtotal")
                         .HasColumnType("decimal(10, 2)");
@@ -834,6 +831,15 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("EmailConfirmationTokenExpiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EmailConfirmationTokenHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EmailConfirmedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -850,7 +856,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<bool>("is_email_verified")
+                    b.Property<bool?>("is_email_verified")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("is_revoked")
                         .HasColumnType("bit");
 
                     b.Property<int?>("location_id")
@@ -862,6 +871,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("password_hash")
+                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -873,6 +883,12 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("refresh_token_expiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("resetPasswordToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("resetPasswordTokenExpired")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("role_id")
