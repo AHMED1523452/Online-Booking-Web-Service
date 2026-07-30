@@ -1,4 +1,4 @@
-﻿using Application.Features.Auth.ChangePassword;
+﻿using Application.Features.Auth.Commands.ChangePassword;
 using FluentValidation;
 using System;
 using System.Collections.Generic;

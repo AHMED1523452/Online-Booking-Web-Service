@@ -1,7 +1,7 @@
 ﻿using Application.Common.Interfaces;
 using Application.Common.Patterns;
+using Application.Features.Auth.Commands.RevokeTokenPassenger;
 using Application.Features.Auth.DTOs;
-using Application.Features.Auth.RevokePassenger;
 using Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Logging;

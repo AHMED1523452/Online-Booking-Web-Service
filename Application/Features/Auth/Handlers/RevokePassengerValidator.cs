@@ -1,4 +1,4 @@
-﻿using Application.Features.Auth.RevokePassenger;
+﻿using Application.Features.Auth.Commands.RevokeTokenPassenger;
 using FluentValidation;
 using System;
 using System.Collections.Generic;

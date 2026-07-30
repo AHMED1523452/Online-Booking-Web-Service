@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Application.Features.Auth.RevokeTokenPassenger.UnRevokePassengerToken
+namespace Application.Features.Auth.Commands.RevokeTokenPassenger.UnRevokePassengerToken
 {
     public sealed record UnRevokePassengerCommand(RevokeRefreshTokenRequestDTO requestDTO) : IRequest<GenericResult<ForgotPasswordResponseDTO>>;
 }

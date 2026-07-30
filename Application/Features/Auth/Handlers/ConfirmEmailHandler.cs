@@ -1,6 +1,6 @@
 ﻿using Application.Common.Interfaces;
 using Application.Common.Patterns;
-using Application.Features.Auth.ConfirmEmail;
+using Application.Features.Auth.Commands.ConfirmEmail;
 using Application.Features.Auth.DTOs;
 using Domain.Entities;
 using MediatR;

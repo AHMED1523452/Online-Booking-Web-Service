@@ -1,6 +1,6 @@
 ﻿using Application.Common.Interfaces;
 using Application.Common.Patterns;
-using Application.Features.Auth.ChangePassword;
+using Application.Features.Auth.Commands.ChangePassword;
 using Application.Features.Auth.DTOs;
 using Application.Features.Hotels.Commands;
 using Domain.Entities;

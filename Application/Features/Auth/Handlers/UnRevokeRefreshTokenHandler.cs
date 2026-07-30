@@ -1,7 +1,7 @@
 ﻿using Application.Common.Interfaces;
 using Application.Common.Patterns;
+using Application.Features.Auth.Commands.RevokeTokenPassenger.UnRevokePassengerToken;
 using Application.Features.Auth.DTOs;
-using Application.Features.Auth.RevokeTokenPassenger.UnRevokePassengerToken;
 using Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
