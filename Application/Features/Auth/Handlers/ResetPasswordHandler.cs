@@ -36,7 +36,6 @@ namespace Application.Features.Auth.Handlers
                 var existing_passenger = await passenger_instance
                         .GetByIdAsync(predicate: op => op.email == request.requestDTO.Email &&
                                                        op.IsDeleted == false &&
-                                                       op.is_revoked == false && 
                                                        op.is_email_verified == true  && 
                                                        op.status == "verified",
                                                        cancellationToken);

@@ -4,6 +4,7 @@ using Application.Features.Auth.Commands.RevokeTokenPassenger;
 using Application.Features.Auth.DTOs;
 using Domain.Entities;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Stripe.Terminal;
 using System;
@@ -14,39 +15,43 @@ namespace Application.Features.Auth.Handlers
 {
     public sealed class RevokePassengerHandler : IRequestHandler<RevokeRefreshTokenCommand, GenericResult<ForgotPasswordResponseDTO>>
     {
-        private readonly IUnitOfWork unitOfWork;
+        private readonly IApplicationDbContext dbContext;
         private readonly ICurrentIUserService currentIUser;
         private readonly ILogger<RevokePassengerHandler> logger;
 
-        public RevokePassengerHandler(IUnitOfWork unitOfWork, 
+        public RevokePassengerHandler(IApplicationDbContext dbContext,
                                       ICurrentIUserService currentIUser,
                                       ILogger<RevokePassengerHandler> logger)
         {
-            this.unitOfWork = unitOfWork;
+            this.dbContext = dbContext;
             this.currentIUser = currentIUser;
             this.logger = logger;
         }
         public async Task<GenericResult<ForgotPasswordResponseDTO>> Handle(RevokeRefreshTokenCommand request, CancellationToken cancellationToken)
         {
-            var passenger_instance = unitOfWork.Repository<passenger>();
-            if (passenger_instance is null) throw new ArgumentNullException(nameof(passenger_instance));
 
-            var existing_passenger = await passenger_instance
-                                .GetByIdAsync(predicate: op => op.refreshToken == request.requestDTO.RefreshToken &&
-                                                          op.IsDeleted == false &&
-                                                          op.is_revoked == false,
-                                                          cancellationToken);
-            if (existing_passenger is null) return await Result.FailureAsync<ForgotPasswordResponseDTO>("Passenger not found. ");
+            var existing_token = await dbContext.refreshTokens
+                                                    .Include(op => op.User)
+                                                    .Where(op => op.UserId == request.requestDTO.UserId
+                                                              && op.IsRevoked == null)
+                                                    .OrderByDescending(op => op.CreatedAt)
+                                                    .FirstOrDefaultAsync();
+
+            if (existing_token is null) return await Result.FailureAsync<ForgotPasswordResponseDTO>("Invalid User Id. ");
 
             try
             {
-                existing_passenger.is_revoked = true;
-                existing_passenger.IsDeleted = true;
-                existing_passenger.updated_at = DateTime.UtcNow;
-                existing_passenger.UpdatedBy = currentIUser.UserId;
-                existing_passenger.DeletedAt = DateTime.UtcNow;
+                
+                existing_token.IsRevoked = true;
+                existing_token.RevokedAt = DateTime.UtcNow;
 
-                await unitOfWork.SaveChangesAsync(cancellationToken);
+                existing_token.User.IsDeleted = true;
+                existing_token.User.updated_at = DateTime.UtcNow;
+                existing_token.User.UpdatedBy = currentIUser.UserId;
+                existing_token.User.DeletedAt = DateTime.UtcNow;
+
+                //. Modifying the existing token and user entity to reflect the revocation and deletion status.
+                await dbContext.SaveChangesAsync(cancellationToken);
                 return await Result.SuccessAsync<ForgotPasswordResponseDTO>(new ForgotPasswordResponseDTO
                 {
                     Message = "Passenger revoked successfully. "

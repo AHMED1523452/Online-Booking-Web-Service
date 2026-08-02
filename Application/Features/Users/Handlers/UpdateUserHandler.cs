@@ -28,7 +28,6 @@ namespace Application.Features.Users.Handlers
 
             passenger existing_user = await user_instance.GetByIdAsync(predicate: op => op.id == currentIUser.UserId &&
                                                                                   op.IsDeleted == false &&
-                                                                                  op.is_revoked == false &&
                                                                                   op.is_email_verified == true &&
                                                                                   op.status == "verified", cancellationToken);
             if (existing_user is null) return await Result.FailureAsync<UpdateUserResponseDTO>("User not found. ");

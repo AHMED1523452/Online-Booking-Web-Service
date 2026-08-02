@@ -37,9 +37,6 @@ public partial class passenger : AuditableEntity
     [StringLength(256)]
     public string password_hash { get; set; }
 
-    public string? refreshToken { get; set; }
-    public DateTime? refresh_token_expiry { get; set; }
-
     //. reset password properties
     public string? resetPasswordToken { get; set; }
     public DateTime? resetPasswordTokenExpired { get; set; }
@@ -54,14 +51,14 @@ public partial class passenger : AuditableEntity
     public DateTime? EmailConfirmedAt { get; set; } = null;
 
 
-    //. Revoking passenger property
-    public bool? is_revoked { get; set; } = false;
-
     [InverseProperty("passenger")]
     public virtual ICollection<booking>? bookings { get; set; } = new List<booking>();
 
     [InverseProperty("passenger")]
     public virtual ICollection<favorite>? favorites { get; set; } = new List<favorite>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<RefreshTokens>? refreshTokens { get; set; } = new List<RefreshTokens>();
 
     [ForeignKey("location_id")]
     [InverseProperty("passengers")]

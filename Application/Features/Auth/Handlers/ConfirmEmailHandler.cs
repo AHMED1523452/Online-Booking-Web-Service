@@ -32,8 +32,7 @@ namespace Application.Features.Auth.Handlers
             if (passenger_instance is null) throw new ArgumentNullException(nameof(passenger_instance));
 
             var existing_passenger = await passenger_instance.GetByIdAsync(op => op.email == request.requestDTO.Email &&
-                                                                                op.IsDeleted == false &&
-                                                                                op.is_revoked == false ,
+                                                                                op.IsDeleted == false ,
                                                                                 cancellationToken);
             if (existing_passenger is null) return await Result.FailureAsync<ForgotPasswordResponseDTO>("Passenger not found. ");
 

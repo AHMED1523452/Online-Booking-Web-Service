@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 
 namespace Domain.Entities
 {
-    public class RefreshToken
+    public class RefreshTokens
     {
         public long Id { get; set; }
-        public string Token { get; set; } = string.Empty;
-        public DateTime ExpiresAt { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? Revoked { get; set; }
-        public string? ReplacedByToken { get; set; }
 
         public long UserId { get; set; }
-        public passenger User { get; set; } = null!;
+        public passenger User { get; set; } = default!;
 
-        public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
-        public bool IsActive => Revoked is null && !IsExpired;
+        public string TokenHash { get; set; } = default!;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? ExpiresAt { get; set; }
+        public DateTime? RevokedAt { get; set; }
+        public bool? IsRevoked { get; set; } = false;
+
+        public long ReplacedByTokenId { get; set; }
     }
 }

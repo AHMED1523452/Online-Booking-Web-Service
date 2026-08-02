@@ -37,7 +37,7 @@ namespace OnlineTravelBooking.Controllers
             return Ok(result);
         }
 
-        [HttpGet("me")]
+        [HttpGet("profile")]
         [ProducesResponseType(typeof(PaginatedResult<UserSummaryDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize]

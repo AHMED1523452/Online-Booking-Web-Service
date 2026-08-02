@@ -22,6 +22,43 @@ namespace Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Domain.Entities.RefreshTokens", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("IsRevoked")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("ReplacedByTokenId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("refreshTokens");
+                });
+
             modelBuilder.Entity("Domain.Entities.booking", b =>
                 {
                     b.Property<long>("id")
@@ -859,9 +896,6 @@ namespace Infrastructure.Migrations
                     b.Property<bool?>("is_email_verified")
                         .HasColumnType("bit");
 
-                    b.Property<bool?>("is_revoked")
-                        .HasColumnType("bit");
-
                     b.Property<int?>("location_id")
                         .HasColumnType("int");
 
@@ -879,19 +913,13 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("refreshToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("refresh_token_expiry")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("resetPasswordToken")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("resetPasswordTokenExpired")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("role_id")
+                    b.Property<int?>("role_id")
                         .HasColumnType("int");
 
                     b.Property<string>("status")
@@ -1506,6 +1534,17 @@ namespace Infrastructure.Migrations
                     b.ToTable("tour_schedules");
                 });
 
+            modelBuilder.Entity("Domain.Entities.RefreshTokens", b =>
+                {
+                    b.HasOne("Domain.Entities.passenger", "User")
+                        .WithMany("refreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Domain.Entities.booking", b =>
                 {
                     b.HasOne("Domain.Entities.passenger", "passenger")
@@ -1733,7 +1772,6 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Entities.role", "role")
                         .WithMany("passengers")
                         .HasForeignKey("role_id")
-                        .IsRequired()
                         .HasConstraintName("FK_users_role");
 
                     b.Navigation("location");
@@ -1989,6 +2027,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("bookings");
 
                     b.Navigation("favorites");
+
+                    b.Navigation("refreshTokens");
 
                     b.Navigation("reviews");
                 });

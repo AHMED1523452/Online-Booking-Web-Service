@@ -5,7 +5,7 @@ using Application.Features.Auth.Commands.ConfirmEmail;
 using Application.Features.Auth.Commands.ForgotPassword;
 using Application.Features.Auth.Commands.ResetPassword;
 using Application.Features.Auth.Commands.RevokeTokenPassenger;
-using Application.Features.Auth.Commands.RevokeTokenPassenger.UnRevokePassengerToken;
+using Application.Features.Auth.Commands.UnRevokePassengerToken;
 using Application.Features.Auth.Commands.Login;
 using Application.Features.Auth.Commands.Register;
 using Application.Features.Auth.DTOs;
@@ -128,6 +128,7 @@ public sealed class AuthController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ApiResponse<string>>> Logout([FromBody] LogoutRequestDTO request,CancellationToken cancelltionToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         var result = await _mediator.Send(new Application.Features.Auth.Commands.Logout.LogoutCommand(request.RefreshToken), cancelltionToken);
 
         if (!result.Success) return BadRequest(result);

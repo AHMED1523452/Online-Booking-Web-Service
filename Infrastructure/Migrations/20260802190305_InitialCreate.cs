@@ -243,22 +243,19 @@ namespace Infrastructure.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    role_id = table.Column<int>(type: "int", nullable: false),
+                    role_id = table.Column<int>(type: "int", nullable: true),
                     name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     location_id = table.Column<int>(type: "int", nullable: true),
                     status = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: false, defaultValue: "unverified"),
                     password_hash = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    refreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    refresh_token_expiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     resetPasswordToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     resetPasswordTokenExpired = table.Column<DateTime>(type: "datetime2", nullable: true),
                     is_email_verified = table.Column<bool>(type: "bit", nullable: true),
                     EmailConfirmationTokenHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     EmailConfirmationTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EmailConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    is_revoked = table.Column<bool>(type: "bit", nullable: true),
                     created_at = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "(sysutcdatetime())"),
                     CreatedBy = table.Column<long>(type: "bigint", nullable: false),
                     UpdatedBy = table.Column<long>(type: "bigint", nullable: false),
@@ -498,6 +495,31 @@ namespace Infrastructure.Migrations
                         column: x => x.user_id,
                         principalTable: "passengers",
                         principalColumn: "id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "refreshTokens",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    TokenHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RevokedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsRevoked = table.Column<bool>(type: "bit", nullable: true),
+                    ReplacedByTokenId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_refreshTokens", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_refreshTokens_passengers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "passengers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1018,6 +1040,11 @@ namespace Infrastructure.Migrations
                 column: "transaction_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_refreshTokens_UserId",
+                table: "refreshTokens",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_reviews_booking_id",
                 table: "reviews",
                 column: "booking_id");
@@ -1134,6 +1161,9 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "payments");
+
+            migrationBuilder.DropTable(
+                name: "refreshTokens");
 
             migrationBuilder.DropTable(
                 name: "reviews");

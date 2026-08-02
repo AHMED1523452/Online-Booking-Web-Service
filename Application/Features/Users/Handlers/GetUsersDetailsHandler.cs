@@ -47,8 +47,7 @@ namespace Application.Features.Users.Handlers
                                                             !u.IsDeleted &&
                                                             (!request.requestDTO.RoleId.HasValue || u.role_id == request.requestDTO.RoleId.Value) &&
                                                             (string.IsNullOrWhiteSpace(request.requestDTO.Status) || u.status == request.requestDTO.Status) &&
-                                                            (!request.requestDTO.EmailVerified.HasValue || u.is_email_verified == request.requestDTO.EmailVerified.Value) &&
-                                                            (!request.requestDTO.IsRevoked.HasValue || u.is_revoked == request.requestDTO.IsRevoked.Value),
+                                                            (!request.requestDTO.EmailVerified.HasValue || u.is_email_verified == request.requestDTO.EmailVerified.Value),
                                                            selector: op => new UserSummaryDTO
                                                            {
                                                                CreatedAt = op.created_at,

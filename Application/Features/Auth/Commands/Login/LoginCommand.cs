@@ -2,6 +2,7 @@
 using Application.Common.Interfaces;
 using Application.Common.Models;
 using Application.Features.Auth.DTOs;
+using Domain.Entities;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -107,15 +108,24 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, ApiRespo
         // Persist the new refresh token so the client can use it to rotate access tokens.
         var refreshToken = await _jwtTokenGenerator.GenerateRefreshTokenAsync(tokenUser, cancellationToken);
         var dbUser = await _context.passengers
-            .FirstAsync(p => p.email == request.Email &&   
-                             p.is_revoked == false  && 
+            .FirstAsync(p => p.email == request.Email &&  
                              p.IsDeleted == false && 
                              p.is_email_verified == true &&
                              p.status == "verified", cancellationToken);
-        //if()
-        dbUser.refreshToken          = refreshToken;
-        dbUser.refresh_token_expiry  = DateTime.UtcNow.AddDays(7);
 
+
+        RefreshTokens tokens = new RefreshTokens
+        {
+            UserId = dbUser.id,
+            TokenHash = await _passwordHasher.HashPassword(refreshToken, cancellationToken),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            ReplacedByTokenId = default
+        };
+
+
+        //. just adding a new refresh token in refresh token table for the user
+        await _context.refreshTokens.AddAsync(tokens, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
         // Evict the now-stale cached profile so the next login re-reads from DB.

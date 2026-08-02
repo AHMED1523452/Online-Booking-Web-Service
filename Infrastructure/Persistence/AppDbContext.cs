@@ -48,10 +48,16 @@ public partial class AppDbContext : DbContext, IApplicationDbContext
     public virtual DbSet<tour_price_tier> tour_price_tiers { get; set; }
     public virtual DbSet<tour_schedule> tour_schedules { get; set; }
     public virtual DbSet<passenger> passengers { get; set; }
+    public virtual DbSet<RefreshTokens> refreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // ── booking ───────────────────────────────────────────
+
+        modelBuilder.Entity<RefreshTokens>().HasOne(op => op.User)
+                                    .WithMany(op => op.refreshTokens)
+                                    .HasForeignKey(op => op.UserId)
+                                    .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<booking>(entity =>
         {
             entity.HasKey(e => e.id).HasName("PK__bookings__3213E83F6EE64705");

@@ -1,48 +1,51 @@
 ﻿using Application.Common.Interfaces;
 using Application.Common.Patterns;
-using Application.Features.Auth.Commands.RevokeTokenPassenger.UnRevokePassengerToken;
+using Application.Features.Auth.Commands.UnRevokePassengerToken;
 using Application.Features.Auth.DTOs;
 using Domain.Entities;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.Extensions.Logging;
 namespace Application.Features.Auth.Handlers
 {
     public  class UnRevokeRefreshTokenHandler : IRequestHandler<UnRevokePassengerCommand, GenericResult<ForgotPasswordResponseDTO>>
     {
-        private readonly IUnitOfWork unitOfWork;
+        private readonly IApplicationDbContext dbContext;
         private readonly ICurrentIUserService currentIUser;
         private readonly ILogger<UnRevokeRefreshTokenHandler> logger;
 
-        public UnRevokeRefreshTokenHandler(IUnitOfWork unitOfWork,
-                                             ICurrentIUserService currentIUser, ILogger<UnRevokeRefreshTokenHandler> logger
-                                             )
+        public UnRevokeRefreshTokenHandler(IApplicationDbContext dbContext,
+                                           ICurrentIUserService currentIUser,
+                                           ILogger<UnRevokeRefreshTokenHandler> logger)
         {
             this.logger = logger;
-            this.unitOfWork = unitOfWork;
+            this.dbContext = dbContext;
             this.currentIUser = currentIUser;
         }
         public async Task<GenericResult<ForgotPasswordResponseDTO>> Handle(UnRevokePassengerCommand request, CancellationToken cancellationToken)
         {
-            var passenger_instance = unitOfWork.Repository<passenger>();
-            if (passenger_instance is null) throw new ArgumentNullException(nameof(passenger_instance));
+            //. un revoke the last refresh token for the user and also un delete the user.
+            var existing_token = await dbContext.refreshTokens
+                                                    .Include(op => op.User)
+                                                    .Where(op => op.UserId == request.requestDTO.UserId
+                                                              && op.IsRevoked == true)
+                                                    .OrderByDescending(op => op.CreatedAt)
+                                                    .FirstOrDefaultAsync();
 
-            var existing_passenger = await passenger_instance
-                                .GetByIdAsync(predicate: op => op.refreshToken == request.requestDTO.RefreshToken &&
-                                                          op.IsDeleted == true &&
-                                                          op.is_revoked == true,
-                                                          cancellationToken);
-            if (existing_passenger is null) return await Result.FailureAsync<ForgotPasswordResponseDTO>("Passenger not found. ");
+            if (existing_token is null) return await Result.FailureAsync<ForgotPasswordResponseDTO>("Invalid User Id. ");
 
             try
             {
-                existing_passenger.is_revoked = false;
-                existing_passenger.IsDeleted = false;
-                existing_passenger.updated_at = DateTime.UtcNow;
-                existing_passenger.UpdatedBy = currentIUser.UserId;
-                existing_passenger.DeletedAt = DateTime.UtcNow;
+                existing_token.IsRevoked = false;
+                existing_token.RevokedAt = DateTime.UtcNow; 
+                
+                existing_token.User.IsDeleted = false;
+                existing_token.User.updated_at = DateTime.UtcNow;
+                existing_token.User.UpdatedBy = currentIUser.UserId;
+                existing_token.User.DeletedAt = DateTime.UtcNow;
 
-                await unitOfWork.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
                 return await Result.SuccessAsync<ForgotPasswordResponseDTO>(new ForgotPasswordResponseDTO
                 {
                     Message = "Passenger became unrevoked successfully. "

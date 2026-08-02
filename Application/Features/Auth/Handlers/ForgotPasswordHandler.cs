@@ -45,7 +45,6 @@ namespace Application.Features.Auth.Handler
 
             var existing_passenger = await passenger_instance.GetByIdAsync(predicate: op => op.email == request.requestDTO.Email && 
                                                                                              op.IsDeleted == false && 
-                                                                                             op.is_revoked == false && 
                                                                                              op.status == "verified", cancellationToken);
             if (existing_passenger is null)
                 return await Result.FailureAsync<ForgotPasswordResponseDTO>("User not found. ");

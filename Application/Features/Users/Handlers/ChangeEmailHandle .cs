@@ -44,8 +44,7 @@ namespace Application.Features.Users.Handlers
                                                                                op.email ==currentIUser.Email  && 
                                                                                 op.IsDeleted == false &&
                                                                                 op.status == "verified" &&
-                                                                                op.is_email_verified == true &&
-                                                                                op.is_revoked == false,
+                                                                                op.is_email_verified == true,
                                                                                 cancellationToken);
                 if (existing_user is null) return await Result.FailureAsync<ChangeEmailResponseDTO>("User not found. ");
 

@@ -41,8 +41,7 @@ namespace Application.Features.Users.Handlers
 
             var exitingUser = await user_instance
                             .GetByIdAsync(predicate: op => op.id == currentIUser.UserId &&
-                                                           op.IsDeleted == false &&
-                                                           op.is_revoked == false,
+                                                           op.IsDeleted == false,
                                            cancellationToken,
                                            op => op.role); //. to load the data into the server
             if (exitingUser is null) return await Result.FailureAsync<UserDetailsResponseDTO>("User not found. ");

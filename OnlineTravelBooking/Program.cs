@@ -58,7 +58,8 @@ builder.Services.AddHybridCache(options =>
 });
 //______________Sentry____________________________________
 // UseSentry() with no arguments reads ALL settings from the (Sentry) section
-//builder.WebHost.UseSentry();
+
+builder.WebHost.UseSentry();
 builder.Services.Configure<SentryAspNetCoreOptions>(options =>
 {
     options.Environment = builder.Environment.EnvironmentName;
@@ -151,10 +152,11 @@ app.UseMiddleware<MeasuringExecutingTimeMiddleware>();
 // ── Sentry performance tracing ────────────────────────────────────────────────
 // Creates one Sentry "transaction" per HTTP request so you can see
 // slow endpoints in the Performance tab of your Sentry dashboard.
-//. app.UseSentryTracing();
+
+app.UseSentryTracing();
 
 
-    app.UseSwagger();
+app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Online Travel Booking API v1");

@@ -30,15 +30,17 @@ namespace Application.Features.Auth.Handlers
             this.currentIUser = currentIUser;
             this.logger = logger;
         }
+
+        //. any other logic that is needed to be implemented in the handler.
         public async Task<GenericResult<ForgotPasswordResponseDTO>> Handle(ChangePassengerPasswordCommand request, CancellationToken cancellationToken)
         {
             var passenger_instance = unitOfWork.Repository<passenger>();
             if (passenger_instance is null) throw new ArgumentNullException(nameof(passenger_instance));
             try
             {
+                //. any one can do this operation but we will check if the passenger exists and is verified before changing the password.
                 var existing_passenger = await passenger_instance
                                 .GetByIdAsync(predicate: op => op.IsDeleted == false &&
-                                                               op.is_revoked == false && 
                                                                op.is_email_verified == true && 
                                                                op.status == "verified"
                                                                , cancellationToken);

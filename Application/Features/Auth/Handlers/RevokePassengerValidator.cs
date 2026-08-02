@@ -10,9 +10,9 @@ namespace Application.Features.Auth.Handlers
     {
         public RevokePassengerValidator()
         {
-            RuleFor(x => x.requestDTO.RefreshToken)
+            RuleFor(x => x.requestDTO.UserId)
            .NotEmpty()
-           .WithMessage("Refresh token is required.");
+           .WithMessage("User id is required.");
         }
     }
 }

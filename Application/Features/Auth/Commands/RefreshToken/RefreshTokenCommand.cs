@@ -1,6 +1,8 @@
 using Application.Common.Interfaces;
 using Application.Common.Models;
+using Application.Common.Patterns;
 using Application.Features.Auth.DTOs;
+using Domain.Entities;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -26,65 +28,80 @@ public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshToke
 
 public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, ApiResponse<RefreshTokenResponseDTO>>
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IApplicationDbContext dbContext;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly HybridCache _cache;
+    private readonly ICurrentIUserService currentIUser;
+    private readonly IPasswordHasher passwordHasher;
 
     public RefreshTokenCommandHandler(
-        IApplicationDbContext context,
+        IApplicationDbContext dbContext,
         IJwtTokenGenerator jwtTokenGenerator,
-        HybridCache cache)
+        HybridCache cache,
+        ICurrentIUserService currentIUser,
+        IPasswordHasher passwordHasher)
     {
-        _context = context;
+        this.dbContext = dbContext;
         _jwtTokenGenerator = jwtTokenGenerator;
         _cache = cache;
+        this.currentIUser = currentIUser;
+        this.passwordHasher = passwordHasher;
     }
 
     public async Task<ApiResponse<RefreshTokenResponseDTO>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
-        // NOTE: refreshToken is a random GUID — not suitable as a cache key.
-        // We look it up from the DB, rotate it, and then evict the email-keyed profile.
 
-        // 1. Find passenger with matching refresh token
-        var user = await _context.passengers
-            .Include(p => p.role)
-            .FirstOrDefaultAsync(p => p.refreshToken == request.RefreshToken && 
-                                      p.is_revoked == false && 
-                                      p.IsDeleted == false && 
-                                      p.is_email_verified == true &&
-                                      p.status == "verified", cancellationToken);
+        var existing_Token = await dbContext.refreshTokens
+                                    .Include(op => op.User)
+                                    .ThenInclude(op => op.role)
+                                    .Where(op => op.UserId == currentIUser.UserId &&
+                                                 op.IsRevoked == false)
+                                    .OrderByDescending(op => op.CreatedAt)
+                                    .FirstOrDefaultAsync(cancellationToken);
 
-        if (user is null)
-        {
-            return ApiResponse<RefreshTokenResponseDTO>.Fail("Invalid refresh token.", statusCode: 400);
-        }
+        if(!await passwordHasher.VerifyPassword(request.RefreshToken, existing_Token.TokenHash, cancellationToken))
+            return await Task.FromResult(ApiResponse<RefreshTokenResponseDTO>.Fail("Invalid refresh token.", statusCode: 400));
 
         // 2. Check if token is expired
-        if (user.refresh_token_expiry < DateTime.Now )
+        if (existing_Token.ExpiresAt <= DateTime.UtcNow)
         {
             // Clear expired token details
-            user.refreshToken = null;
-            user.refresh_token_expiry = default ;
-            await _context.SaveChangesAsync(cancellationToken);
+            existing_Token.IsRevoked = true;
+            existing_Token.RevokedAt = DateTime.UtcNow;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
 
             return ApiResponse<RefreshTokenResponseDTO>.Fail("Refresh token has expired. Please login again.", statusCode: 400);
         }
 
         // 3. Generate new JWT token and rotate refresh token
-        var newRefreshToken = await _jwtTokenGenerator.GenerateRefreshTokenAsync(user, cancellationToken);
+        var newRefreshToken = await _jwtTokenGenerator.GenerateRefreshTokenAsync(existing_Token.User, cancellationToken);
 
-        user.refreshToken = newRefreshToken;
-        user.refresh_token_expiry = DateTime.UtcNow.AddDays(7);
+
+        //. Creating a new refresh token and updating the existing one to be revoked and replaced by the new token
+        var token = new RefreshTokens
+        {
+            TokenHash = await passwordHasher.HashPassword(newRefreshToken, cancellationToken),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7), // Set the expiry for the new refresh token
+            UserId = existing_Token.UserId,
+        };
+
+        existing_Token.ExpiresAt = DateTime.UtcNow;
+        existing_Token.IsRevoked = true;
+        existing_Token.RevokedAt = DateTime.UtcNow;
+        existing_Token.ReplacedByTokenId = token.Id;
 
         //. here you update the values for the refresh token and refresh token expiry not adding don't forget  
-        await _context.SaveChangesAsync(cancellationToken);
+        await dbContext.refreshTokens.AddAsync(token, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         // 4. Evict the cached profile — the passenger record has changed (new refresh token).
         //    The next Login call will re-populate the cache from the DB.
-        await _cache.RemoveAsync($"passenger-email:{user.email}", cancellationToken);
+        await _cache.RemoveAsync($"passenger-email:{currentIUser.Email}", cancellationToken);
 
         return ApiResponse<RefreshTokenResponseDTO>.Ok(
-            new RefreshTokenResponseDTO(newRefreshToken,user.name, user.email, user.role?.name ?? "Passenger"),
+            new RefreshTokenResponseDTO(newRefreshToken,existing_Token.User.name, currentIUser.Email, existing_Token.User.role.name),
             "Token refreshed successfully."
         );
     }
