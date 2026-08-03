@@ -150,7 +150,7 @@ namespace OnlineTravelBooking.Controllers
             return Ok(result);
         }
 
-        [HttpPatch("change-status/{id}")]
+        [HttpPatch("change-status")]
         [ProducesResponseType(typeof(GenericResult<ChangeHotelStatusResponseDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(Roles = "Admin")]
