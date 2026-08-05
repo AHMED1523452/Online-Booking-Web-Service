@@ -23,7 +23,6 @@ namespace Application.Features.HotelBooking.Handlers
         private readonly ICheckAvailabilityRoom checkAvailability;
         private readonly ICalculateNightPrice calculateNightPrice;
         private readonly ILogger<CreateHotelBookingHandler> logger;
-        private readonly IMapper mapper;
         private readonly ICurrentIUserService currentIUserService;
         private readonly IBookingService bookingService;
         private readonly ICacheInvalidationService cacheInvalidationService;
@@ -32,7 +31,6 @@ namespace Application.Features.HotelBooking.Handlers
                                          ICheckAvailabilityRoom checkAvailability,
                                          ICalculateNightPrice calculateNightPrice,
                                          ILogger<CreateHotelBookingHandler> logger,
-                                         IMapper mapper,
                                          ICurrentIUserService currentIUserService,
                                          IBookingService bookingService,
                                          ICacheInvalidationService cacheInvalidationService
@@ -42,7 +40,6 @@ namespace Application.Features.HotelBooking.Handlers
             this.checkAvailability = checkAvailability;
             this.calculateNightPrice = calculateNightPrice;
             this.logger = logger;
-            this.mapper = mapper;
             this.currentIUserService = currentIUserService;
             this.bookingService = bookingService;
             this.cacheInvalidationService = cacheInvalidationService;
