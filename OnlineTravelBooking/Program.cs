@@ -72,7 +72,6 @@ builder.Services.Configure<SentryAspNetCoreOptions>(options =>
 });
 
 
-//. Default Scheme 
 //.Default Scheme 
 builder.Services.AddAuthentication(options =>
 {

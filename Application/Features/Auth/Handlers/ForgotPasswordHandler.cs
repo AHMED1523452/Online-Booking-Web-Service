@@ -3,18 +3,11 @@ using Application.Common.Patterns;
 using Application.Features.Auth.Commands.ForgotPassword;
 using Application.Features.Auth.DTOs;
 using Domain.Entities;
-using FluentValidation.Results;
 using Infrastructure.Services;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Stripe;
-using Stripe.Issuing;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Mail;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace Application.Features.Auth.Handler
 {
@@ -22,18 +15,21 @@ namespace Application.Features.Auth.Handler
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IEmailService emailService;
+        private readonly IBackgroundJobService jobService;
         private readonly ILogger<ForgotPasswordHandler> logger;
         private readonly IPasswordHasher passwordHasher;
         private readonly ICurrentIUserService currentIUserService;
 
         public ForgotPasswordHandler(IUnitOfWork unitOfWork, 
                                      IEmailService emailService,
+                                     IBackgroundJobService jobService,
                                      ILogger<ForgotPasswordHandler> logger,
                                      IPasswordHasher passwordHasher,
                                      ICurrentIUserService currentIUserService)
         { 
             this.unitOfWork = unitOfWork;
             this.emailService = emailService;
+            this.jobService = jobService;
             this.logger = logger;
             this.passwordHasher = passwordHasher;
             this.currentIUserService = currentIUserService;
@@ -65,7 +61,7 @@ namespace Application.Features.Auth.Handler
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
 
-                await emailService.SendEmail(existing_passenger.email, "Password Reset Request", htmlBody);
+                 jobService.Enqueue<IEmailService>(service => service.SendEmail(existing_passenger.email, "Password Reset Request", htmlBody));
 
                 logger.LogInformation(
                     "User {UserName} forgot password has been sent to him an email at {SentAt}",

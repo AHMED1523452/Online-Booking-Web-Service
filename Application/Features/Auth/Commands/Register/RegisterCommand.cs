@@ -1,5 +1,4 @@
 using Application.Common.Interfaces;
-using Application.Common.Models;
 using Application.Common.Patterns;
 using Application.Features.Auth.DTOs;
 using Domain.Entities;
@@ -7,7 +6,6 @@ using FluentValidation;
 using Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Stripe;
 using System.Net.Mail;
@@ -55,6 +53,7 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Ge
     private readonly IApplicationDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IBackgroundJobService jobService;
     private readonly IEmailService emailService;
     private readonly ILogger<RegisterCommandHandler> logger;
 
@@ -62,12 +61,14 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Ge
         IApplicationDbContext context,
         IPasswordHasher passwordHasher,
         IJwtTokenGenerator jwtTokenGenerator,
+        IBackgroundJobService jobService,
         IEmailService emailService,
         ILogger<RegisterCommandHandler> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
+        this.jobService = jobService;
         this.emailService = emailService;
         this.logger = logger;
     }
@@ -106,7 +107,8 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Ge
             string htmlBody = await MailBody.ConfirmEamilMailBody(user, emailConfirmationToken, cancellationToken);
             if (htmlBody is null) throw new Exception("Something invalid occurred. ");
 
-            await emailService.SendEmail(user.email, "Confirm Your Email Address", htmlBody);
+            //. Converting the immediately sending email to background job taking its time to send the email and making retries
+            jobService.Enqueue<IEmailService>(service => service.SendEmail(user.email, "Confirm Your Email Address", htmlBody));
 
 
             return await Result.SuccessAsync<ForgotPasswordResponseDTO>(new ForgotPasswordResponseDTO

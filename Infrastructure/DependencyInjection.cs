@@ -1,23 +1,19 @@
-using Amazon;
 using Amazon.S3;
 using Application.Common.Interfaces;
 using Application.Common.Settings;
 using Application.Services;
-using Infrastructure.AWSSettings;
+using Hangfire;
+using Hangfire.SqlServer;
 using Infrastructure.Caching;
 using Infrastructure.Payments;
 using Infrastructure.Persistence;
 using Infrastructure.RateLimiting;
 using Infrastructure.Security;
 using Infrastructure.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 using System.Net;
-using System.Security.Claims;
-using System.Text;
 
 namespace Infrastructure;
 
@@ -48,6 +44,33 @@ public static class DependencyInjection
         services.AddTransient<IBookingService, BookingService>();
         services.AddTransient<IEmailService, EmailService>();
 
+        //. Hangfire Registeration Settings 
+        services.AddHangfire(config =>
+        {
+            config
+                .SetDataCompatibilityLevel(
+                    CompatibilityLevel.Version_180)
+
+                .UseSimpleAssemblyNameTypeSerializer()
+
+                .UseRecommendedSerializerSettings()
+
+                .UseSqlServerStorage(
+                    configuration.GetConnectionString("HangfireConnection"),
+                    new SqlServerStorageOptions
+                    {
+                        // How frequently Hangfire checks for jobs.
+                        QueuePollInterval = TimeSpan.FromSeconds(15),
+
+                        // Allows Hangfire to retry failed jobs.
+                        UseRecommendedIsolationLevel = true,
+
+                        // Keeps distributed locks.
+                        DisableGlobalLocks = true
+                    });
+        });
+        services.AddHangfireServer();
+        services.AddScoped<IBackgroundJobService, BackgroundJobService>();
 
         services.AddSingleton<IFlightCacheService, FlightMemoryCacheService>();
 

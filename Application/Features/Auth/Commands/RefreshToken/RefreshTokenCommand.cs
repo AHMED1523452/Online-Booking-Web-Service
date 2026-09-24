@@ -86,7 +86,7 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
             ExpiresAt = DateTime.UtcNow.AddDays(7), // Set the expiry for the new refresh token
             UserId = existing_Token.UserId,
         };
-
+        
         existing_Token.ExpiresAt = DateTime.UtcNow;
         existing_Token.IsRevoked = true;
         existing_Token.RevokedAt = DateTime.UtcNow;
